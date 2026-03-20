@@ -1,3 +1,4 @@
+# Not working yet, but here’s the README I’ve been building out for the n8n resume generator project. Will update as I make progress on the workflows and frontend!
 # RESUME.GEN — AI-Powered Resume Generator
 
 Automated n8n workflow that takes your resume + a job description and outputs a tailored, ATS-optimized PDF compiled from a LaTeX template.
