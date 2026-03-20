@@ -7,6 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Barlow:wght@300;400;500;600&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <!-- KaTeX for LaTeX rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <style>
     :root {
       --bg:           #05080F;
@@ -890,8 +893,6 @@
       text-align: center;
     }
 
-    .reset-btn:hover { border-color: var(--text-muted); color: var(--text-primary); }
-
     /* LaTeX Preview Panel */
     .latex-preview-panel {
       background: var(--bg-surface);
@@ -899,6 +900,16 @@
       border-radius: 4px;
       padding: 22px;
       margin-bottom: 16px;
+    }
+
+    .preview-sublabel {
+      font-family: var(--font-mono);
+      font-size: 0.56rem;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: block;
     }
 
     .latex-viewer {
@@ -947,9 +958,78 @@
       background: rgba(41, 232, 200, 0.5);
     }
 
+    /* LaTeX Preview Rendering */
+    .latex-preview {
+      background: rgba(0, 15, 30, 0.8);
+      border: 1px solid rgba(77, 158, 255, 0.2);
+      border-radius: 3px;
+      padding: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--text-primary);
+    }
+
+    .preview-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+    }
+
+    .preview-meta {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      letter-spacing: 0.06em;
+    }
+
+    .preview-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .preview-section {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      padding: 8px 12px;
+      border-left: 2px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      background: rgba(41, 232, 200, 0.05);
+      text-transform: uppercase;
+    }
+
+    .latex-preview::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .latex-preview::-webkit-scrollbar-track {
+      background: rgba(77, 158, 255, 0.05);
+    }
+
+    .latex-preview::-webkit-scrollbar-thumb {
+      background: rgba(77, 158, 255, 0.3);
+      border-radius: 4px;
+    }
+
+    .latex-preview::-webkit-scrollbar-thumb:hover {
+      background: rgba(77, 158, 255, 0.5);
+    }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
-    @media (max-width: 600px) { .results-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) { 
+      .results-grid { grid-template-columns: 1fr; }
+      .latex-preview-panel > div { grid-template-columns: 1fr !important; }
+    }
   </style>
 </head>
 <body>
@@ -1190,8 +1270,23 @@
       <!-- LaTeX Source Preview -->
       <div class="latex-preview-panel">
         <div class="section-label">LATEX SOURCE</div>
-        <div class="latex-viewer">
-          <pre id="latex-code"><code>% LaTeX source will display here...</code></pre>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; min-height: 300px;">
+          <!-- Raw LaTeX Code -->
+          <div>
+            <div class="preview-sublabel">RAW SOURCE</div>
+            <div class="latex-viewer">
+              <pre id="latex-code"><code>% LaTeX source will display here...</code></pre>
+            </div>
+          </div>
+          <!-- LaTeX Preview Rendering -->
+          <div>
+            <div class="preview-sublabel">PREVIEW</div>
+            <div class="latex-preview" id="latex-preview">
+              <div style="opacity: 0.4; text-align: center; padding: 40px 16px;">
+                [rendering...]
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1498,9 +1593,57 @@
       grid.appendChild(chip);
     });
 
-    // LaTeX Source
+    // LaTeX Source with KaTeX rendering
     if (data.tex_source) {
       document.getElementById('latex-code').textContent = data.tex_source;
+      renderLaTeXPreview(data.tex_source);
+    }
+  }
+
+  function renderLaTeXPreview(latexSource) {
+    if (!window.katex) return; // Skip if KaTeX not loaded
+    
+    const previewDiv = document.getElementById('latex-preview');
+    if (!previewDiv) return;
+    
+    previewDiv.innerHTML = '';
+    
+    // Extract and render key document metadata (title, author, etc)
+    const titleMatch = latexSource.match(/title\{([^}]+)\}/);
+    const authorMatch = latexSource.match(/author\{([^}]+)\}/);
+    const dateMatch = latexSource.match(/date\{([^}]+)\}/);
+    
+    if (titleMatch) {
+      const titleEl = document.createElement('div');
+      titleEl.className = 'preview-title';
+      titleEl.textContent = titleMatch[1].replace(/\\/g, '');
+      previewDiv.appendChild(titleEl);
+    }
+    
+    if (authorMatch) {
+      const authorEl = document.createElement('div');
+      authorEl.className = 'preview-meta';
+      authorEl.textContent = '— ' + authorMatch[1].replace(/\\/g, '');
+      previewDiv.appendChild(authorEl);
+    }
+    
+    // Extract section headers and render them
+    const sections = latexSource.match(/section\*?\{([^}]+)\}/g) || [];
+    if (sections.length > 0) {
+      const sectionsEl = document.createElement('div');
+      sectionsEl.className = 'preview-sections';
+      
+      sections.slice(0, 6).forEach(section => {
+        const match = section.match(/section\*?\{([^}]+)\}/);
+        if (match) {
+          const sectionEl = document.createElement('div');
+          sectionEl.className = 'preview-section';
+          sectionEl.textContent = match[1].replace(/\\/g, '').replace(/{|}/g, '');
+          sectionsEl.appendChild(sectionEl);
+        }
+      });
+      
+      previewDiv.appendChild(sectionsEl);
     }
   }
 
