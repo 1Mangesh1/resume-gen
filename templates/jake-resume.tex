@@ -1,0 +1,133 @@
+%-------------------------
+% Jake's Resume Template
+% Adapted for RESUME.GEN — variables injected by LaTeX Generator workflow node
+% Special chars escaped: & → \&,  % → \%,  _ → \_,  # → \#
+%-------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+\pdfgentounicode=1
+
+% ── Custom Commands ──────────────────────────────────────────────
+\newcommand{\resumeItem}[1]{
+  \item\small{{#1 \vspace{-2pt}}}
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+  \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+% ════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── HEADING ─────────────────────────────────────────────────────
+% NOTE: All values below are replaced programmatically by the
+%       LaTeX Generator n8n Code node. Do not edit placeholders.
+\begin{center}
+  \textbf{\Huge \scshape CANDIDATE\_NAME} \\ \vspace{1pt}
+  \small CANDIDATE\_PHONE $|$
+  \href{mailto:CANDIDATE\_EMAIL}{\underline{CANDIDATE\_EMAIL}} $|$
+  \href{CANDIDATE\_LINKEDIN}{\underline{linkedin/CANDIDATE\_LINKEDIN\_SHORT}} $|$
+  \href{CANDIDATE\_GITHUB}{\underline{github/CANDIDATE\_GITHUB\_SHORT}}
+\end{center}
+
+% ── EDUCATION ───────────────────────────────────────────────────
+\section{Education}
+  \resumeSubHeadingListStart
+    % EDUCATION_BLOCK_START
+    \resumeSubheading
+      {University Name}{City, State}
+      {Degree — Major}{Month Year -- Month Year}
+    % EDUCATION_BLOCK_END
+  \resumeSubHeadingListEnd
+
+% ── EXPERIENCE ──────────────────────────────────────────────────
+\section{Experience}
+  \resumeSubHeadingListStart
+    % EXPERIENCE_BLOCK_START
+    \resumeSubheading
+      {Job Title}{Month Year -- Month Year}
+      {Company Name}{City, State}
+      \resumeItemListStart
+        \resumeItem{Bullet point goes here}
+      \resumeItemListEnd
+    % EXPERIENCE_BLOCK_END
+  \resumeSubHeadingListEnd
+
+% ── PROJECTS ────────────────────────────────────────────────────
+\section{Projects}
+  \resumeSubHeadingListStart
+    % PROJECT_BLOCK_START
+    \resumeProjectHeading
+      {\textbf{Project Name} $|$ \emph{Tech Stack}}{Month Year}
+      \resumeItemListStart
+        \resumeItem{Project bullet point}
+      \resumeItemListEnd
+    % PROJECT_BLOCK_END
+  \resumeSubHeadingListEnd
+
+% ── SKILLS ──────────────────────────────────────────────────────
+\section{Technical Skills}
+  \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+      % SKILLS_BLOCK_START
+      \textbf{Languages}{: Python, JavaScript, TypeScript} \\
+      \textbf{Frameworks}{: React, Node.js, FastAPI} \\
+      \textbf{Tools}{: Docker, Git, AWS}
+      % SKILLS_BLOCK_END
+    }}
+  \end{itemize}
+
+\end{document}

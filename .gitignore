@@ -1,0 +1,16 @@
+# Secrets
+.env
+
+# n8n data volume
+n8n_data/
+
+# macOS
+.DS_Store
+
+# Output files
+*.pdf
+output/
+
+# Editor
+.vscode/
+.idea/

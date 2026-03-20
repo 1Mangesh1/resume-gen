@@ -1,0 +1,148 @@
+{
+  "name": "Resume Parser",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resume-parser",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "11223344-5566-7788-99aa-bbccddeeff00",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "wh-resume-parser-001"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Build the Gemini prompt for structured resume extraction\nconst resumeText = $input.first().json.body.resume_text || '';\n\nif (!resumeText.trim()) {\n  throw new Error('resume_text is required in the request body');\n}\n\nconst schema = JSON.stringify({\n  contact: {\n    name: 'string',\n    email: 'string',\n    phone: 'string',\n    linkedin: 'string',\n    github: 'string'\n  },\n  summary: 'string',\n  skills: [\n    { category: 'string', items: ['string'] }\n  ],\n  experience: [\n    {\n      company: 'string',\n      title: 'string',\n      dates: 'string',\n      bullets: ['string']\n    }\n  ],\n  projects: [\n    {\n      name: 'string',\n      tech: ['string'],\n      bullets: ['string']\n    }\n  ],\n  education: [\n    {\n      institution: 'string',\n      degree: 'string',\n      dates: 'string',\n      gpa: 'string'\n    }\n  ]\n}, null, 2);\n\nconst prompt = `You are a precise resume data extraction assistant.\n\nExtract all information from the resume text below and return it as a single valid JSON object matching this schema exactly:\n\n${schema}\n\nRules:\n- Return ONLY valid JSON. No markdown fences, no explanation text, no trailing commas.\n- Do not invent information not present in the source text.\n- If a field is not present in the resume, use an empty string \"\" for string fields or an empty array [] for array fields.\n- For the skills array, group skills into logical categories (e.g., \"Languages\", \"Frameworks\", \"Tools\", \"Cloud\").\n- For experience bullets, preserve the original phrasing but clean up formatting.\n- The gpa field should be a string (e.g., \"3.8/4.0\") or empty string if not mentioned.\n\nRESUME TEXT:\n---\n${resumeText}\n---\n\nReturn the JSON object now:`;\n\nreturn [{ json: { prompt } }];\n"
+      },
+      "id": "22334455-6677-8899-aabb-ccddeeff0011",
+      "name": "Build Gemini Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { contents: [{ role: \"user\", parts: [{ text: $json.prompt }] }], generationConfig: { response_mime_type: \"application/json\", temperature: 0.3 } } }}",
+        "options": {}
+      },
+      "id": "33445566-7788-99aa-bbcc-ddeeff001122",
+      "name": "Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        680,
+        300
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Parse the JSON string returned by Gemini into a structured object\nconst response = $input.first().json;\n\n// Navigate the Gemini response envelope\nlet rawText;\ntry {\n  rawText = response.candidates[0].content.parts[0].text;\n} catch (e) {\n  throw new Error('Unexpected Gemini response structure: ' + JSON.stringify(response));\n}\n\n// Strip any accidental markdown fences Gemini may include\nconst cleaned = rawText\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error('Failed to parse Gemini JSON response: ' + e.message + '\\nRaw text: ' + rawText);\n}\n\n// Ensure all top-level keys exist with safe defaults\nconst result = {\n  contact: parsed.contact || { name: '', email: '', phone: '', linkedin: '', github: '' },\n  summary: parsed.summary || '',\n  skills: Array.isArray(parsed.skills) ? parsed.skills : [],\n  experience: Array.isArray(parsed.experience) ? parsed.experience : [],\n  projects: Array.isArray(parsed.projects) ? parsed.projects : [],\n  education: Array.isArray(parsed.education) ? parsed.education : []\n};\n\nreturn [{ json: result }];\n"
+      },
+      "id": "44556677-8899-aabb-ccdd-eeff00112233",
+      "name": "Parse Gemini Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "55667788-99aa-bbcc-ddee-ff0011223344",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Gemini Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Prompt": {
+      "main": [
+        [
+          {
+            "node": "Gemini API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini API": {
+      "main": [
+        [
+          {
+            "node": "Parse Gemini Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Gemini Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-03-19T00:00:00.000Z",
+  "versionId": "resume-parser-v1",
+  "id": 2,
+  "active": true
+}
