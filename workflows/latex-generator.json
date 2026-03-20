@@ -61,7 +61,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{{ JSON.stringify({ compiler: 'pdflatex', resources: [{ main: true, content: $json.tex_base64 }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ compiler: 'pdflatex', resources: [{ main: true, content: $('Base64 Encode TEX').item.json.tex_base64 }] }) }}",
         "options": {
           "response": {
             "response": {
