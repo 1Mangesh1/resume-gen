@@ -186,11 +186,25 @@
     },
     {
       "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Capture LaTeX Generator response and pass through all needed fields\nconst latexResponse = items[0].json || {};\nconst texSource = latexResponse.tex_source || '';\nconst pdfBase64 = latexResponse.pdf_base64 || null;\nconst compileError = latexResponse.compile_error || null;\n\n// Get ATS score and keywords from the AI Tailoring Engine output\nconst atsScore = $('Call AI Tailoring Engine').item.json.ats_score ?? null;\nconst matchedKeywords = $('Call AI Tailoring Engine').item.json.matched_keywords ?? [];\n\nreturn [{\n  json: {\n    tex_source: texSource,\n    pdf_base64: pdfBase64,\n    compile_error: compileError,\n    ats_score: atsScore,\n    matched_keywords: matchedKeywords\n  }\n}];\n"
+      },
+      "id": "c3d4e5f6-0003-4000-8000-000000000010b",
+      "name": "Capture LaTeX Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2040,
+        300
+      ]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "http://localhost:5678/webhook/output-handler",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ pdf_base64: $json.pdf_base64 ?? null, tex_source: $json.tex_source ?? '', ats_score: $('Call AI Tailoring Engine').item.json.ats_score ?? null, matched_keywords: $('Call AI Tailoring Engine').item.json.matched_keywords ?? [], compile_error: $json.compile_error ?? null }) }}",
+        "jsonBody": "={{ JSON.stringify({ pdf_base64: $json.pdf_base64 ?? null, tex_source: $json.tex_source ?? '', ats_score: $json.ats_score ?? null, matched_keywords: $json.matched_keywords ?? [], compile_error: $json.compile_error ?? null }) }}",
         "options": {}
       },
       "id": "c3d4e5f6-0003-4000-8000-000000000011",
@@ -340,6 +354,17 @@
       ]
     },
     "Call LaTeX Generator": {
+      "main": [
+        [
+          {
+            "node": "Capture LaTeX Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture LaTeX Response": {
       "main": [
         [
           {
