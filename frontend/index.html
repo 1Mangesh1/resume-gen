@@ -892,6 +892,61 @@
 
     .reset-btn:hover { border-color: var(--text-muted); color: var(--text-primary); }
 
+    /* LaTeX Preview Panel */
+    .latex-preview-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 22px;
+      margin-bottom: 16px;
+    }
+
+    .latex-viewer {
+      background: rgba(0, 15, 30, 0.8);
+      border: 1px solid rgba(41, 232, 200, 0.2);
+      border-radius: 3px;
+      padding: 16px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      line-height: 1.5;
+      color: var(--accent-cyan);
+      letter-spacing: 0.02em;
+    }
+
+    .latex-viewer pre {
+      margin: 0;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .latex-viewer code {
+      color: inherit;
+      background: transparent;
+      font-family: inherit;
+      font-size: inherit;
+    }
+
+    /* Scrollbar styling */
+    .latex-viewer::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .latex-viewer::-webkit-scrollbar-track {
+      background: rgba(41, 232, 200, 0.05);
+    }
+
+    .latex-viewer::-webkit-scrollbar-thumb {
+      background: rgba(41, 232, 200, 0.3);
+      border-radius: 4px;
+    }
+
+    .latex-viewer::-webkit-scrollbar-thumb:hover {
+      background: rgba(41, 232, 200, 0.5);
+    }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
     @media (max-width: 600px) { .results-grid { grid-template-columns: 1fr; } }
@@ -1130,6 +1185,14 @@
           </div>
         </div>
         <div class="ats-grade" id="ats-grade">COMPUTING</div>
+      </div>
+
+      <!-- LaTeX Source Preview -->
+      <div class="latex-preview-panel">
+        <div class="section-label">LATEX SOURCE</div>
+        <div class="latex-viewer">
+          <pre id="latex-code"><code>% LaTeX source will display here...</code></pre>
+        </div>
       </div>
 
       <!-- Downloads -->
@@ -1434,6 +1497,11 @@
       chip.textContent = kw;
       grid.appendChild(chip);
     });
+
+    // LaTeX Source
+    if (data.tex_source) {
+      document.getElementById('latex-code').textContent = data.tex_source;
+    }
   }
 
   function animateScore(target) {
