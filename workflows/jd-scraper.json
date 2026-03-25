@@ -118,7 +118,7 @@
               "rightValue": true,
               "operator": {
                 "type": "boolean",
-                "operation": "equal"
+                "operation": "equals"
               }
             }
           ],
