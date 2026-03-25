@@ -15,12 +15,29 @@ services:
       - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
       # Passed through to workflow environment variables
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - CF_API_TOKEN=${CF_API_TOKEN}
-      - CF_ACCOUNT_ID=${CF_ACCOUNT_ID}
+      - CF_API_TOKEN=${CF_API_TOKEN:-}
+      - CF_ACCOUNT_ID=${CF_ACCOUNT_ID:-}
     volumes:
       - n8n_data:/home/node/.n8n
     networks:
       - resume_net
+    depends_on:
+      latex:
+        condition: service_healthy
+
+  # Local LaTeX compilation service (replaces latex.ytotech.com)
+  latex:
+    build:
+      context: ./latex-service
+    restart: always
+    networks:
+      - resume_net
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # Static frontend server
   frontend:

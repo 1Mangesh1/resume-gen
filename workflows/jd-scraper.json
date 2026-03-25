@@ -12,29 +12,30 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        240,
-        300
-      ],
+      "position": [240, 300],
       "webhookId": "wh-jd-scraper-001"
     },
     {
       "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Normalise input: support both direct JSON and webhook body wrapper\nconst raw = $input.first().json;\nconst body = raw.body || raw;\n\nconst url  = (body.url  || '').trim();\nconst text = (body.text || '').trim();\n\nif (!url && !text) {\n  throw new Error('Provide either url or text in the request body');\n}\n\nreturn [{ json: { url, text, hasText: text.length > 0 } }];\n"
+      },
+      "id": "jds-validate-01",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
           "conditions": [
             {
-              "id": "cond-text-nonempty",
-              "leftValue": "={{ $json.body.text }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty"
-              }
+              "id": "cond-has-text",
+              "leftValue": "={{ $json.hasText }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
             }
           ],
           "combinator": "and"
@@ -45,10 +46,7 @@
       "name": "Has Text?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        460,
-        300
-      ]
+      "position": [700, 300]
     },
     {
       "parameters": {
@@ -57,54 +55,35 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.CF_API_TOKEN }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "Authorization", "value": "=Bearer {{ $env.CF_API_TOKEN }}" },
+            { "name": "Content-Type",  "value": "application/json" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { url: $('Webhook').item.json.body.url, rejectResourceTypes: ['image', 'font'] } }}",
+        "jsonBody": "={{ { url: $('Validate Input').item.json.url, rejectResourceTypes: ['image', 'font', 'media'] } }}",
         "options": {
-          "response": {
-            "response": {
-              "fullResponse": true
-            }
-          }
+          "timeout": 30000,
+          "response": { "response": { "fullResponse": true } }
         }
       },
       "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
       "name": "Cloudflare Scrape",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [
-        680,
-        420
-      ],
+      "position": [940, 420],
       "continueOnFail": true
     },
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
           "conditions": [
             {
               "id": "cond-cf-success",
-              "leftValue": "={{ $json.body.result !== undefined && $json.body.result.markdown !== undefined }}",
+              "leftValue": "={{ $json.body && $json.body.result && $json.body.result.markdown && $json.body.result.markdown.trim().length > 100 }}",
               "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equal"
-              }
+              "operator": { "type": "boolean", "operation": "equal" }
             }
           ],
           "combinator": "and"
@@ -115,40 +94,38 @@
       "name": "CF Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        900,
-        420
-      ]
+      "position": [1180, 420]
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ \"https://r.jina.ai/\" + $('Webhook').item.json.body.url }}",
-        "options": {}
+        "url": "={{ \"https://r.jina.ai/\" + $('Validate Input').item.json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Accept", "value": "text/plain" },
+            { "name": "X-Return-Format", "value": "text" }
+          ]
+        },
+        "options": { "timeout": 25000 }
       },
       "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
       "name": "Jina AI Fallback",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [
-        1120,
-        540
-      ],
+      "position": [1420, 540],
       "continueOnFail": true
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Normalize output from all possible branches into { jd_raw, source }\n// This node receives items from three possible upstream nodes:\n//   1. Has Text? (true branch) \u2192 raw text from request body\n//   2. CF Success? (true branch) \u2192 Cloudflare markdown result\n//   3. Jina AI Fallback \u2192 plain-text markdown from Jina\n\nconst item = $input.first();\nconst data = item.json;\n\nlet jd_raw = '';\nlet source = 'manual';\n\n// Detect Cloudflare response: has a nested body.result.markdown\nif (data.body && data.body.result && data.body.result.markdown) {\n  jd_raw = data.body.result.markdown.trim();\n  source = 'cloudflare';\n}\n// Detect Jina response: the HTTP response body is plain text stored in `data` key by n8n\nelse if (typeof data.data === 'string' && data.data.trim().length > 0) {\n  jd_raw = data.data.trim();\n  source = 'jina';\n}\n// Detect manual text: passed directly from the webhook body.text field\nelse if (data.body && typeof data.body.text === 'string' && data.body.text.trim().length > 0) {\n  jd_raw = data.body.text.trim();\n  source = 'manual';\n}\n// Fallback: try raw string response from Jina (some n8n versions)\nelse if (typeof data === 'string' && data.trim().length > 0) {\n  jd_raw = data.trim();\n  source = 'jina';\n}\n\nreturn [{ json: { jd_raw, source } }];\n"
+        "jsCode": "// Unify output from all three branches into { jd_raw, source }\nconst item = $input.first().json;\n\nlet jd_raw = '';\nlet source  = 'unknown';\n\n// Branch 1: manual text passed directly from Has Text? node\nif (item.hasText === true) {\n  jd_raw = item.text || '';\n  source  = 'manual';\n}\n// Branch 2: Cloudflare returned valid markdown\nelse if (item.body && item.body.result && item.body.result.markdown) {\n  jd_raw = item.body.result.markdown.trim();\n  source  = 'cloudflare';\n}\n// Branch 3: Jina AI returned plain text (various n8n response shapes)\nelse if (typeof item.data === 'string' && item.data.trim().length > 50) {\n  jd_raw = item.data.trim();\n  source  = 'jina';\n}\nelse if (typeof item === 'string' && item.trim().length > 50) {\n  jd_raw = item.trim();\n  source  = 'jina';\n}\n\n// Trim to a reasonable token budget (first ~12 000 chars ≈ 3 000 tokens)\njd_raw = jd_raw.slice(0, 12000);\n\nif (!jd_raw.trim()) {\n  throw new Error('Failed to retrieve job description from any source. Check CF credentials or paste JD text directly.');\n}\n\nreturn [{ json: { jd_raw, source } }];\n"
       },
       "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
       "name": "Normalize Output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1340,
-        300
-      ]
+      "position": [1660, 300]
     },
     {
       "parameters": {
@@ -159,102 +136,41 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        1560,
-        300
-      ]
+      "position": [1900, 300]
     }
   ],
   "connections": {
     "Webhook": {
-      "main": [
-        [
-          {
-            "node": "Has Text?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }]]
+    },
+    "Validate Input": {
+      "main": [[{ "node": "Has Text?", "type": "main", "index": 0 }]]
     },
     "Has Text?": {
       "main": [
-        [
-          {
-            "node": "Normalize Output",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Cloudflare Scrape",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Normalize Output",  "type": "main", "index": 0 }],
+        [{ "node": "Cloudflare Scrape", "type": "main", "index": 0 }]
       ]
     },
     "Cloudflare Scrape": {
-      "main": [
-        [
-          {
-            "node": "CF Success?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "CF Success?", "type": "main", "index": 0 }]]
     },
     "CF Success?": {
       "main": [
-        [
-          {
-            "node": "Normalize Output",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Jina AI Fallback",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Normalize Output",  "type": "main", "index": 0 }],
+        [{ "node": "Jina AI Fallback",  "type": "main", "index": 0 }]
       ]
     },
     "Jina AI Fallback": {
-      "main": [
-        [
-          {
-            "node": "Normalize Output",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Normalize Output", "type": "main", "index": 0 }]]
     },
     "Normalize Output": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
     }
   },
-  "settings": {
-    "executionOrder": "v1"
-  },
+  "settings": { "executionOrder": "v1" },
   "staticData": null,
   "tags": [],
-  "triggerCount": 0,
-  "updatedAt": "2026-03-19T00:00:00.000Z",
-  "versionId": "jd-scraper-v1",
   "id": 1,
   "active": true
 }

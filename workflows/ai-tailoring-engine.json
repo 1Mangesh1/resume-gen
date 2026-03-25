@@ -12,25 +12,19 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        240,
-        300
-      ],
+      "position": [240, 300],
       "webhookId": "wh-ai-tailoring-001"
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Build the Gemini prompt for resume tailoring against a job description\nconst body = $input.first().json.body || $input.first().json || {};\n\nconst resumeJson = body.resume_json;\nlet jdRaw = body.jd_raw || '';\n\n// jd_raw may arrive as string or object \u2014 normalise to string\nif (typeof jdRaw === 'object') {\n  jdRaw = jdRaw.jd_raw || JSON.stringify(jdRaw);\n}\n\nif (!resumeJson) {\n  throw new Error('resume_json is required in the request body');\n}\nif (!String(jdRaw).trim()) {\n  throw new Error('jd_raw is required in the request body');\n}\n\nconst resumeStr = JSON.stringify(resumeJson, null, 2);\n\nconst outputSchema = JSON.stringify({\n  tailored_resume: {\n    contact: {\n      name: 'string',\n      email: 'string',\n      phone: 'string',\n      linkedin: 'string',\n      github: 'string'\n    },\n    summary: 'string \u2014 rewritten to mirror JD language and highlight fit',\n    skills: [\n      { category: 'string', items: ['string \u2014 re-ranked so JD-matching skills appear first'] }\n    ],\n    experience: [\n      {\n        company: 'string',\n        title: 'string',\n        dates: 'string',\n        bullets: ['string \u2014 rewritten with strong action verbs and JD keywords where truthful']\n      }\n    ],\n    projects: [\n      {\n        name: 'string',\n        tech: ['string'],\n        bullets: ['string \u2014 rewritten to highlight relevance to JD']\n      }\n    ],\n    education: [\n      {\n        institution: 'string',\n        degree: 'string',\n        dates: 'string',\n        gpa: 'string'\n      }\n    ]\n  },\n  matched_keywords: ['string \u2014 keywords/phrases from the JD that appear or are aligned in the tailored resume'],\n  ats_score: 'integer 0-100 representing estimated ATS keyword match percentage'\n}, null, 2);\n\nconst prompt = `You are a professional resume optimization expert specializing in ATS (Applicant Tracking System) optimization.\n\nYour task is to tailor the candidate's resume to the provided job description and return a structured JSON response.\n\n## CRITICAL RULES \u2014 READ CAREFULLY:\n1. Only use facts from the candidate's input resume. NEVER add skills, companies, job titles, metrics, or technologies not already present in the original resume.\n2. You MAY rewrite bullet points to use stronger action verbs and naturally incorporate JD keywords \u2014 but only when the underlying fact supports it.\n3. You MAY re-rank skills so that skills matching the JD appear first within each category.\n4. You MAY rewrite the summary to emphasize the candidate's most relevant experience for this specific role.\n5. Do not fabricate GPA, dates, certifications, or any quantitative metrics.\n6. The tailored_resume must preserve all original entries (do not drop experience, education, or projects).\n\n## INPUT RESUME (JSON):\n${resumeStr}\n\n## JOB DESCRIPTION:\n---\n${jdRaw}\n---\n\n## OUTPUT SCHEMA:\nReturn a single valid JSON object matching this schema exactly. No markdown fences, no explanation text.\n\n${outputSchema}\n\n## ATS SCORE METHODOLOGY:\n- Count distinct keywords/phrases from the JD that are present in the tailored resume.\n- Estimate coverage as a percentage (0-100) of the most important JD requirements that are addressed.\n- Store that integer in ats_score.\n\nReturn the JSON object now:`;\n\nreturn [{ json: { prompt } }];\n"
+        "jsCode": "// Support both direct JSON and webhook body wrapper\nconst raw  = $input.first().json;\nconst body = raw.body || raw;\n\nconst resumeJson = body.resume_json;\nlet jdRaw = body.jd_raw || '';\n\n// Normalise jd_raw to string regardless of how it arrived\nif (typeof jdRaw === 'object') {\n  jdRaw = jdRaw.jd_raw || JSON.stringify(jdRaw);\n}\njdRaw = String(jdRaw).trim();\n\nif (!resumeJson) throw new Error('resume_json is required');\nif (!jdRaw)      throw new Error('jd_raw is required');\n\nconst resumeStr = JSON.stringify(resumeJson, null, 2);\n\n// Trim JD to a reasonable size\nconst jdTrimmed = jdRaw.slice(0, 8000);\n\nconst outputSchema = {\n  tailored_resume: {\n    contact:    { name: 'string', email: 'string', phone: 'string', linkedin: 'string', github: 'string' },\n    summary:    'string — rewritten to mirror JD language and highlight candidate fit',\n    skills:     [{ category: 'string', items: ['string — JD-matching skills listed first'] }],\n    experience: [{ company: 'string', title: 'string', dates: 'string', bullets: ['string — strong verbs + JD keywords'] }],\n    projects:   [{ name: 'string', tech: ['string'], bullets: ['string — relevance to JD highlighted'] }],\n    education:  [{ institution: 'string', degree: 'string', dates: 'string', gpa: 'string' }]\n  },\n  matched_keywords: ['string — keywords from JD present or aligned in tailored resume'],\n  ats_score: 'integer 0–100'\n};\n\nconst prompt = `You are a professional resume optimization expert specializing in ATS optimization.\n\nTailor the candidate's resume to the job description and return a structured JSON response.\n\n## CRITICAL RULES:\n1. Only use facts from the candidate's resume. NEVER add skills, companies, titles, or metrics not already present.\n2. You MAY rewrite bullets with stronger action verbs and JD keywords — only when the underlying fact supports it.\n3. You MAY re-rank skills so JD-matching items appear first within each category.\n4. You MAY rewrite the summary to emphasize the most relevant experience.\n5. Never fabricate GPA, dates, certifications, or quantitative metrics.\n6. Preserve ALL original experience, education, and project entries — do not drop any.\n7. Return ONLY valid JSON. No markdown fences, no explanatory text.\n\n## CANDIDATE RESUME (JSON):\n${resumeStr}\n\n## JOB DESCRIPTION:\n---\n${jdTrimmed}\n---\n\n## REQUIRED OUTPUT SCHEMA:\n${JSON.stringify(outputSchema, null, 2)}\n\n## ATS SCORE METHODOLOGY:\nCount distinct JD keywords/phrases present in the tailored resume, estimate coverage as 0–100 integer.\n\nReturn the JSON object now:`;\n\nreturn [{ json: { prompt } }];\n"
       },
       "id": "bbccddee-ff00-1122-3344-556677889900",
       "name": "Build Tailoring Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        460,
-        300
-      ]
+      "position": [460, 300]
     },
     {
       "parameters": {
@@ -38,41 +32,30 @@
         "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { contents: [{ role: \"user\", parts: [{ text: $json.prompt }] }], generationConfig: { response_mime_type: \"application/json\", temperature: 0.3 } } }}",
-        "options": {}
+        "jsonBody": "={{ { contents: [{ role: 'user', parts: [{ text: $json.prompt }] }], generationConfig: { response_mime_type: 'application/json', temperature: 0.2, maxOutputTokens: 8192 } } }}",
+        "options": { "timeout": 90000 }
       },
       "id": "ccddeeff-0011-2233-4455-667788990011",
       "name": "Gemini API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [
-        680,
-        300
-      ],
+      "position": [700, 300],
       "continueOnFail": true
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Parse and validate the JSON returned by Gemini for the tailoring response\nconst response = $input.first().json;\n\n// Navigate the Gemini response envelope\nlet rawText;\ntry {\n  rawText = response.candidates[0].content.parts[0].text;\n} catch (e) {\n  throw new Error('Unexpected Gemini response structure: ' + JSON.stringify(response));\n}\n\n// Strip any accidental markdown fences\nconst cleaned = rawText\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error('Failed to parse Gemini JSON response: ' + e.message + '\\nRaw text: ' + rawText);\n}\n\n// Validate and normalise the three required top-level keys\nif (!parsed.tailored_resume || typeof parsed.tailored_resume !== 'object') {\n  throw new Error('Gemini response missing required key: tailored_resume');\n}\n\nconst tailoredResume = parsed.tailored_resume;\n\n// Ensure all sub-sections exist with safe defaults\nconst normalised = {\n  contact: tailoredResume.contact || { name: '', email: '', phone: '', linkedin: '', github: '' },\n  summary: tailoredResume.summary || '',\n  skills: Array.isArray(tailoredResume.skills) ? tailoredResume.skills : [],\n  experience: Array.isArray(tailoredResume.experience) ? tailoredResume.experience : [],\n  projects: Array.isArray(tailoredResume.projects) ? tailoredResume.projects : [],\n  education: Array.isArray(tailoredResume.education) ? tailoredResume.education : []\n};\n\nconst matchedKeywords = Array.isArray(parsed.matched_keywords)\n  ? parsed.matched_keywords\n  : [];\n\n// Clamp ats_score to integer in [0, 100]\nlet atsScore = parseInt(parsed.ats_score, 10);\nif (isNaN(atsScore)) atsScore = 0;\natsScore = Math.max(0, Math.min(100, atsScore));\n\nreturn [{\n  json: {\n    tailored_resume: normalised,\n    matched_keywords: matchedKeywords,\n    ats_score: atsScore\n  }\n}];\n"
+        "jsCode": "const response = $input.first().json;\n\nif (response.error) {\n  throw new Error('Gemini API error: ' + JSON.stringify(response.error));\n}\n\nlet rawText;\ntry {\n  rawText = response.candidates[0].content.parts[0].text;\n} catch (e) {\n  throw new Error('Unexpected Gemini response: ' + JSON.stringify(response).slice(0, 300));\n}\n\nconst cleaned = rawText\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error('JSON parse failed: ' + e.message + ' | Raw: ' + rawText.slice(0, 200));\n}\n\nif (!parsed.tailored_resume || typeof parsed.tailored_resume !== 'object') {\n  throw new Error('Gemini response missing tailored_resume key');\n}\n\nconst tr = parsed.tailored_resume;\nconst normalised = {\n  contact:    tr.contact    || { name: '', email: '', phone: '', linkedin: '', github: '' },\n  summary:    tr.summary    || '',\n  skills:     Array.isArray(tr.skills)     ? tr.skills     : [],\n  experience: Array.isArray(tr.experience) ? tr.experience : [],\n  projects:   Array.isArray(tr.projects)   ? tr.projects   : [],\n  education:  Array.isArray(tr.education)  ? tr.education  : []\n};\n\nconst matched = Array.isArray(parsed.matched_keywords) ? parsed.matched_keywords : [];\nlet score = parseInt(parsed.ats_score, 10);\nif (isNaN(score)) score = 0;\nscore = Math.max(0, Math.min(100, score));\n\nreturn [{ json: { tailored_resume: normalised, matched_keywords: matched, ats_score: score } }];\n"
       },
       "id": "ddeeff00-1122-3344-5566-778899001122",
       "name": "Parse & Validate Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        900,
-        300
-      ]
+      "position": [940, 300]
     },
     {
       "parameters": {
@@ -83,66 +66,18 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        1120,
-        300
-      ]
+      "position": [1180, 300]
     }
   ],
   "connections": {
-    "Webhook": {
-      "main": [
-        [
-          {
-            "node": "Build Tailoring Prompt",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Tailoring Prompt": {
-      "main": [
-        [
-          {
-            "node": "Gemini API",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Gemini API": {
-      "main": [
-        [
-          {
-            "node": "Parse & Validate Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse & Validate Response": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
+    "Webhook":               { "main": [[{ "node": "Build Tailoring Prompt",    "type": "main", "index": 0 }]] },
+    "Build Tailoring Prompt": { "main": [[{ "node": "Gemini API",              "type": "main", "index": 0 }]] },
+    "Gemini API":             { "main": [[{ "node": "Parse & Validate Response","type": "main", "index": 0 }]] },
+    "Parse & Validate Response": { "main": [[{ "node": "Respond to Webhook",   "type": "main", "index": 0 }]] }
   },
-  "settings": {
-    "executionOrder": "v1"
-  },
+  "settings": { "executionOrder": "v1" },
   "staticData": null,
   "tags": [],
-  "triggerCount": 0,
-  "updatedAt": "2026-03-19T00:00:00.000Z",
-  "versionId": "ai-tailoring-engine-v1",
   "id": 3,
   "active": true
 }

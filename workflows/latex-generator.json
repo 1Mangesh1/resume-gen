@@ -12,91 +12,50 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        240,
-        300
-      ],
+      "position": [240, 300],
       "webhookId": "wh-latex-gen-001"
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// \u2500\u2500 Generate LaTeX (Jake's Resume format) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst body = items[0].json.body || items[0].json || {};\nconst resume = body.tailored_resume;\n\nfunction esc(str) {\n  if (str === null || str === undefined) return '';\n  return String(str)\n    .replace(/\\\\/g, '\\\\textbackslash{}')\n    .replace(/&/g, '\\\\&')\n    .replace(/%/g, '\\\\%')\n    .replace(/_/g, '\\\\_')\n    .replace(/#/g, '\\\\#')\n    .replace(/\\$/g, '\\\\$')\n    .replace(/\\{/g, '\\\\{')\n    .replace(/\\}/g, '\\\\}')\n    .replace(/~/g, '\\\\textasciitilde{}')\n    .replace(/\\^/g, '\\\\textasciicircum{}');\n}\n\nconst contact = resume.contact || {};\nconst name = esc(contact.name || 'Your Name');\nconst email = esc(contact.email || '');\nconst phone = esc(contact.phone || '');\nconst linkedin = esc(contact.linkedin || '');\nconst github = esc(contact.github || '');\n\n// Build contact line parts\nconst contactParts = [];\nif (phone) contactParts.push(phone);\nif (email) contactParts.push(`\\\\href{mailto:${email}}{${email}}`);\nif (linkedin) contactParts.push(`\\\\href{https://${linkedin}}{${linkedin}}`);\nif (github) contactParts.push(`\\\\href{https://${github}}{${github}}`);\nconst contactLine = contactParts.join(' $|$ ');\n\n// \u2500\u2500 Education \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nlet educationSection = '';\nconst education = resume.education || [];\nif (education.length > 0) {\n  educationSection = `\n%-----------EDUCATION-----------\n\\\\section{Education}\n  \\\\resumeSubHeadingListStart\n`;\n  for (const edu of education) {\n    const gpaStr = edu.gpa ? `, GPA: ${esc(String(edu.gpa))}` : '';\n    educationSection += `    \\\\resumeSubheading\n      {${esc(edu.institution || '')}}{${esc(edu.dates || '')}}\n      {${esc(edu.degree || '')}${gpaStr}}{}\n`;\n  }\n  educationSection += `  \\\\resumeSubHeadingListEnd\n`;\n}\n\n// \u2500\u2500 Experience \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nlet experienceSection = '';\nconst experience = resume.experience || [];\nif (experience.length > 0) {\n  experienceSection = `\n%-----------EXPERIENCE-----------\n\\\\section{Experience}\n  \\\\resumeSubHeadingListStart\n`;\n  for (const exp of experience) {\n    experienceSection += `    \\\\resumeSubheading\n      {${esc(exp.title || '')}}{${esc(exp.dates || '')}}\n      {${esc(exp.company || '')}}{}\n      \\\\resumeItemListStart\n`;\n    for (const bullet of (exp.bullets || [])) {\n      experienceSection += `        \\\\resumeItem{${esc(bullet)}}\n`;\n    }\n    experienceSection += `      \\\\resumeItemListEnd\n`;\n  }\n  experienceSection += `  \\\\resumeSubHeadingListEnd\n`;\n}\n\n// \u2500\u2500 Projects \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nlet projectsSection = '';\nconst projects = resume.projects || [];\nif (projects.length > 0) {\n  projectsSection = `\n%-----------PROJECTS-----------\n\\\\section{Projects}\n  \\\\resumeSubHeadingListStart\n`;\n  for (const proj of projects) {\n    const techStr = (proj.tech || []).map(t => esc(t)).join(', ');\n    const heading = techStr\n      ? `\\\\textbf{${esc(proj.name || '')}} $|$ \\\\emph{\\\\small{${techStr}}}`\n      : `\\\\textbf{${esc(proj.name || '')}}`;\n    projectsSection += `    \\\\resumeProjectHeading\n      {${heading}}{}\n      \\\\resumeItemListStart\n`;\n    for (const bullet of (proj.bullets || [])) {\n      projectsSection += `        \\\\resumeItem{${esc(bullet)}}\n`;\n    }\n    projectsSection += `      \\\\resumeItemListEnd\n`;\n  }\n  projectsSection += `  \\\\resumeSubHeadingListEnd\n`;\n}\n\n// \u2500\u2500 Skills \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nlet skillsSection = '';\nconst skills = resume.skills || [];\nif (skills.length > 0) {\n  skillsSection = `\n%-----------TECHNICAL SKILLS-----------\n\\\\section{Technical Skills}\n \\\\begin{itemize}[leftmargin=0.15in, label={}]\n    \\\\small{\\\\item{\n`;\n  const skillLines = skills.map(s => {\n    const cat = esc(s.category || '');\n    const itemList = (s.items || []).map(i => esc(i)).join(', ');\n    return `     \\\\textbf{${cat}}{: ${itemList}}`;\n  });\n  skillsSection += skillLines.join(' \\\\\\\\\\\n') + `\n    }}\n \\\\end{itemize}\n`;\n}\n\n// \u2500\u2500 Summary \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nlet summarySection = '';\nif (resume.summary) {\n  summarySection = `\n%-----------SUMMARY-----------\n\\\\section{Summary}\n \\\\begin{itemize}[leftmargin=0.15in, label={}]\n    \\\\small{\\\\item{${esc(resume.summary)}}}\n \\\\end{itemize}\n`;\n}\n\n// \u2500\u2500 Assemble document \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst tex = `\\\\documentclass[letterpaper,11pt]{article}\n\\\\usepackage{latexsym}\n\\\\usepackage[empty]{fullpage}\n\\\\usepackage{titlesec}\n\\\\usepackage{marvosym}\n\\\\usepackage[usenames,dvipsnames]{color}\n\\\\usepackage{verbatim}\n\\\\usepackage{enumitem}\n\\\\usepackage[hidelinks]{hyperref}\n\\\\usepackage{fancyhdr}\n\\\\usepackage[english]{babel}\n\\\\usepackage{tabularx}\n\\\\input{glyphtounicode}\n\\\\pagestyle{fancy}\\\\fancyhf{}\\\\fancyfoot{}\n\\\\renewcommand{\\\\headrulewidth}{0pt}\\\\renewcommand{\\\\footrulewidth}{0pt}\n\\\\addtolength{\\\\oddsidemargin}{-0.5in}\\\\addtolength{\\\\evensidemargin}{-0.5in}\n\\\\addtolength{\\\\textwidth}{1in}\\\\addtolength{\\\\topmargin}{-.5in}\\\\addtolength{\\\\textheight}{1.0in}\n\\\\urlstyle{same}\\\\raggedbottom\\\\raggedright\\\\setlength{\\\\tabcolsep}{0in}\n\\\\titleformat{\\\\section}{\\\\vspace{-4pt}\\\\scshape\\\\raggedright\\\\large}{}{0em}{}[\\\\color{black}\\\\titlerule \\\\vspace{-5pt}]\n\\\\pdfgentounicode=1\n\\\\newcommand{\\\\resumeItem}[1]{\\\\item\\\\small{{#1 \\\\vspace{-2pt}}}}\n\\\\newcommand{\\\\resumeSubheading}[4]{\\\\vspace{-2pt}\\\\item\\\\begin{tabular*}{0.97\\\\textwidth}[t]{l@{\\\\extracolsep{\\\\fill}}r}\\\\textbf{#1} & #2 \\\\\\\\\\\\textit{\\\\small#3} & \\\\textit{\\\\small #4} \\\\\\\\\\\\end{tabular*}\\\\vspace{-7pt}}\n\\\\newcommand{\\\\resumeProjectHeading}[2]{\\\\item\\\\begin{tabular*}{0.97\\\\textwidth}{l@{\\\\extracolsep{\\\\fill}}r}\\\\small#1 & #2 \\\\\\\\\\\\end{tabular*}\\\\vspace{-7pt}}\n\\\\renewcommand\\\\labelitemii{$\\\\vcenter{\\\\hbox{\\\\tiny$\\\\bullet$}}$}\n\\\\newcommand{\\\\resumeSubHeadingListStart}{\\\\begin{itemize}[leftmargin=0.15in, label={}]}\n\\\\newcommand{\\\\resumeSubHeadingListEnd}{\\\\end{itemize}}\n\\\\newcommand{\\\\resumeItemListStart}{\\\\begin{itemize}}\n\\\\newcommand{\\\\resumeItemListEnd}{\\\\end{itemize}\\\\vspace{-5pt}}\n\\\\begin{document}\n\n%----------HEADING----------\n\\\\begin{center}\n    {\\\\Huge \\\\scshape ${name}} \\\\\\\\ \\\\vspace{1pt}\n    \\\\small ${contactLine}\n\\\\end{center}\n${summarySection}${educationSection}${experienceSection}${projectsSection}${skillsSection}\n\\\\end{document}\n`;\n\nreturn [{ json: { tex_source: tex } }];\n"
+        "jsCode": "// ── Generate LaTeX (Jake's Resume format) ────────────────────────\nconst raw    = items[0].json;\nconst body   = raw.body || raw;\nconst resume = body.tailored_resume;\n\nif (!resume) throw new Error('tailored_resume is required in request body');\n\n// ── Escape special LaTeX characters ──────────────────────────────\nfunction esc(str) {\n  if (str === null || str === undefined) return '';\n  return String(str)\n    .replace(/\\\\/g, '\\\\textbackslash{}')\n    .replace(/&/g,  '\\\\&')\n    .replace(/%/g,  '\\\\%')\n    .replace(/_/g,  '\\\\_')\n    .replace(/#/g,  '\\\\#')\n    .replace(/\\$/g, '\\\\$')\n    .replace(/\\{/g, '\\\\{')\n    .replace(/\\}/g, '\\\\}')\n    .replace(/~/g,  '\\\\textasciitilde{}')\n    .replace(/\\^/g, '\\\\textasciicircum{}');\n}\n\n// ── Contact header ────────────────────────────────────────────────\nconst c = resume.contact || {};\nconst name = esc(c.name || 'Your Name');\nconst email    = c.email    ? esc(c.email)    : '';\nconst phone    = c.phone    ? esc(c.phone)    : '';\nconst linkedin = c.linkedin ? esc(c.linkedin) : '';\nconst github   = c.github   ? esc(c.github)   : '';\n\nconst parts = [];\nif (phone)    parts.push(phone);\nif (email)    parts.push(`\\\\href{mailto:${email}}{${email}}`);\nif (linkedin) parts.push(`\\\\href{https://${linkedin}}{${linkedin}}`);\nif (github)   parts.push(`\\\\href{https://${github}}{${github}}`);\nconst contactLine = parts.join(' $|$ ');\n\n// ── Summary ───────────────────────────────────────────────────────\nlet summarySection = '';\nif (resume.summary) {\n  summarySection = `\n%-----------SUMMARY-----------\n\\\\section{Summary}\n \\\\begin{itemize}[leftmargin=0.15in, label={}]\n    \\\\small{\\\\item{${esc(resume.summary)}}}\n \\\\end{itemize}\n`;\n}\n\n// ── Education ─────────────────────────────────────────────────────\nlet educationSection = '';\nconst education = resume.education || [];\nif (education.length > 0) {\n  educationSection = `\n%-----------EDUCATION-----------\n\\\\section{Education}\n  \\\\resumeSubHeadingListStart\n`;\n  for (const edu of education) {\n    const gpaStr = edu.gpa ? `, GPA: ${esc(String(edu.gpa))}` : '';\n    educationSection += `    \\\\resumeSubheading\n      {${esc(edu.institution || '')}}{${esc(edu.dates || '')}}\n      {${esc(edu.degree || '')}${gpaStr}}{}\n`;\n  }\n  educationSection += `  \\\\resumeSubHeadingListEnd\n`;\n}\n\n// ── Experience ────────────────────────────────────────────────────\nlet experienceSection = '';\nconst experience = resume.experience || [];\nif (experience.length > 0) {\n  experienceSection = `\n%-----------EXPERIENCE-----------\n\\\\section{Experience}\n  \\\\resumeSubHeadingListStart\n`;\n  for (const exp of experience) {\n    experienceSection += `    \\\\resumeSubheading\n      {${esc(exp.title || '')}}{${esc(exp.dates || '')}}\n      {${esc(exp.company || '')}}{}\n      \\\\resumeItemListStart\n`;\n    for (const bullet of (exp.bullets || [])) {\n      experienceSection += `        \\\\resumeItem{${esc(bullet)}}\n`;\n    }\n    experienceSection += `      \\\\resumeItemListEnd\n`;\n  }\n  experienceSection += `  \\\\resumeSubHeadingListEnd\n`;\n}\n\n// ── Projects ──────────────────────────────────────────────────────\nlet projectsSection = '';\nconst projects = resume.projects || [];\nif (projects.length > 0) {\n  projectsSection = `\n%-----------PROJECTS-----------\n\\\\section{Projects}\n  \\\\resumeSubHeadingListStart\n`;\n  for (const proj of projects) {\n    const techStr = (proj.tech || []).map(t => esc(t)).join(', ');\n    const heading = techStr\n      ? `\\\\textbf{${esc(proj.name || '')}} $|$ \\\\emph{\\\\small{${techStr}}}`\n      : `\\\\textbf{${esc(proj.name || '')}}`;\n    projectsSection += `    \\\\resumeProjectHeading\n      {${heading}}{}\n      \\\\resumeItemListStart\n`;\n    for (const bullet of (proj.bullets || [])) {\n      projectsSection += `        \\\\resumeItem{${esc(bullet)}}\n`;\n    }\n    projectsSection += `      \\\\resumeItemListEnd\n`;\n  }\n  projectsSection += `  \\\\resumeSubHeadingListEnd\n`;\n}\n\n// ── Technical Skills ──────────────────────────────────────────────\nlet skillsSection = '';\nconst skills = resume.skills || [];\nif (skills.length > 0) {\n  const skillLines = skills.map(s => {\n    const cat      = esc(s.category || '');\n    const itemList = (s.items || []).map(i => esc(i)).join(', ');\n    return `     \\\\textbf{${cat}}{: ${itemList}}`;\n  });\n  skillsSection = `\n%-----------TECHNICAL SKILLS-----------\n\\\\section{Technical Skills}\n \\\\begin{itemize}[leftmargin=0.15in, label={}]\n    \\\\small{\\\\item{\n${skillLines.join(' \\\\\\\\\\\n')}\n    }}\n \\\\end{itemize}\n`;\n}\n\n// ── Assemble document ─────────────────────────────────────────────\nconst tex = `\\\\documentclass[letterpaper,11pt]{article}\n\\\\usepackage{latexsym}\n\\\\usepackage[empty]{fullpage}\n\\\\usepackage{titlesec}\n\\\\usepackage[usenames,dvipsnames]{color}\n\\\\usepackage{verbatim}\n\\\\usepackage{enumitem}\n\\\\usepackage[hidelinks]{hyperref}\n\\\\usepackage{fancyhdr}\n\\\\usepackage[english]{babel}\n\\\\usepackage{tabularx}\n\\\\input{glyphtounicode}\n\\\\pagestyle{fancy}\\\\fancyhf{}\\\\fancyfoot{}\n\\\\renewcommand{\\\\headrulewidth}{0pt}\\\\renewcommand{\\\\footrulewidth}{0pt}\n\\\\addtolength{\\\\oddsidemargin}{-0.5in}\\\\addtolength{\\\\evensidemargin}{-0.5in}\n\\\\addtolength{\\\\textwidth}{1in}\\\\addtolength{\\\\topmargin}{-.5in}\\\\addtolength{\\\\textheight}{1.0in}\n\\\\urlstyle{same}\\\\raggedbottom\\\\raggedright\\\\setlength{\\\\tabcolsep}{0in}\n\\\\titleformat{\\\\section}{\\\\vspace{-4pt}\\\\scshape\\\\raggedright\\\\large}{}{0em}{}[\\\\color{black}\\\\titlerule \\\\vspace{-5pt}]\n\\\\pdfgentounicode=1\n\\\\newcommand{\\\\resumeItem}[1]{\\\\item\\\\small{{#1 \\\\vspace{-2pt}}}}\n\\\\newcommand{\\\\resumeSubheading}[4]{\\\\vspace{-2pt}\\\\item\\\\begin{tabular*}{0.97\\\\textwidth}[t]{l@{\\\\extracolsep{\\\\fill}}r}\\\\textbf{#1} & #2 \\\\\\\\\\\\textit{\\\\small#3} & \\\\textit{\\\\small #4} \\\\\\\\\\\\end{tabular*}\\\\vspace{-7pt}}\n\\\\newcommand{\\\\resumeProjectHeading}[2]{\\\\item\\\\begin{tabular*}{0.97\\\\textwidth}{l@{\\\\extracolsep{\\\\fill}}r}\\\\small#1 & #2 \\\\\\\\\\\\end{tabular*}\\\\vspace{-7pt}}\n\\\\renewcommand\\\\labelitemii{$\\\\vcenter{\\\\hbox{\\\\tiny$\\\\bullet$}}$}\n\\\\newcommand{\\\\resumeSubHeadingListStart}{\\\\begin{itemize}[leftmargin=0.15in, label={}]}\n\\\\newcommand{\\\\resumeSubHeadingListEnd}{\\\\end{itemize}}\n\\\\newcommand{\\\\resumeItemListStart}{\\\\begin{itemize}}\n\\\\newcommand{\\\\resumeItemListEnd}{\\\\end{itemize}\\\\vspace{-5pt}}\n\\\\begin{document}\n\n%----------HEADING----------\n\\\\begin{center}\n    {\\\\Huge \\\\scshape ${name}} \\\\\\\\ \\\\vspace{1pt}\n    \\\\small ${contactLine}\n\\\\end{center}\n${summarySection}${educationSection}${experienceSection}${projectsSection}${skillsSection}\n\\\\end{document}\n`;\n\nreturn [{ json: { tex_source: tex } }];\n"
       },
       "id": "a1b2c3d4-0001-4000-8000-000000000002",
       "name": "Generate LaTeX",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        480,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const texSource = items[0].json.tex_source;\nconst b64 = Buffer.from(texSource).toString('base64');\nreturn [{ json: { tex_source: texSource, tex_base64: b64 } }];\n"
-      },
-      "id": "a1b2c3d4-0001-4000-8000-000000000003",
-      "name": "Base64 Encode TEX",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        720,
-        300
-      ]
+      "position": [480, 300]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://latex.ytotech.com/builds/sync",
+        "url": "http://latex:5000/compile",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ compiler: 'pdflatex', resources: [{ main: true, content: $('Base64 Encode TEX').item.json.tex_base64 }] }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "file"
-            }
-          }
-        }
+        "jsonBody": "={{ { tex_source: $json.tex_source } }}",
+        "options": { "timeout": 120000 }
       },
       "id": "a1b2c3d4-0001-4000-8000-000000000004",
       "name": "Compile LaTeX to PDF",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [
-        960,
-        300
-      ],
+      "position": [720, 300],
       "continueOnFail": true
     },
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
           "conditions": [
             {
-              "id": "cond-pdf-binary",
-              "leftValue": "={{ Object.keys($binary || {}).length > 0 }}",
+              "id": "cond-pdf-exists",
+              "leftValue": "={{ $json.pdf_base64 !== null && $json.pdf_base64 !== undefined && $json.pdf_base64 !== '' }}",
               "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
+              "operator": { "type": "boolean", "operation": "equal" }
             }
           ],
           "combinator": "and"
@@ -107,38 +66,29 @@
       "name": "PDF Compiled?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        1200,
-        300
-      ]
+      "position": [960, 300]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Success path: PDF binary exists \u2014 convert to base64\nconst item = items[0];\nconst texSource = $('Base64 Encode TEX').item.json.tex_source;\n\n// Find the binary key (usually 'data')\nconst binaryKey = Object.keys(item.binary || {})[0] || 'data';\nconst binaryData = item.binary[binaryKey];\n\nlet pdfBase64 = null;\nif (binaryData && binaryData.data) {\n  pdfBase64 = binaryData.data;\n} else if (binaryData) {\n  // Already base64 encoded string in some n8n versions\n  pdfBase64 = binaryData.data || null;\n}\n\nreturn [{\n  json: {\n    tex_source: texSource,\n    pdf_base64: pdfBase64,\n    compile_error: null\n  }\n}];\n"
+        "jsCode": "const tex_source = $('Generate LaTeX').item.json.tex_source;\nconst pdf_base64  = items[0].json.pdf_base64;\nreturn [{ json: { tex_source, pdf_base64, compile_error: null } }];\n"
       },
       "id": "a1b2c3d4-0001-4000-8000-000000000006",
       "name": "PDF Success",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1440,
-        180
-      ]
+      "position": [1200, 180]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Error path: LaTeX compilation failed\nconst texSource = $('Base64 Encode TEX').item.json.tex_source;\n\nreturn [{\n  json: {\n    tex_source: texSource,\n    pdf_base64: null,\n    compile_error: 'LaTeX compilation failed. Download .tex to fix in Overleaf.'\n  }\n}];\n"
+        "jsCode": "const tex_source    = $('Generate LaTeX').item.json.tex_source;\nconst compile_error = items[0].json.error || 'LaTeX compilation failed. Download .tex to fix in Overleaf.';\nreturn [{ json: { tex_source, pdf_base64: null, compile_error } }];\n"
       },
       "id": "a1b2c3d4-0001-4000-8000-000000000007",
       "name": "PDF Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1440,
-        420
-      ]
+      "position": [1200, 420]
     },
     {
       "parameters": {
@@ -149,105 +99,35 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        1680,
-        300
-      ]
+      "position": [1440, 300]
     }
   ],
   "connections": {
     "Webhook": {
-      "main": [
-        [
-          {
-            "node": "Generate LaTeX",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Generate LaTeX",     "type": "main", "index": 0 }]]
     },
     "Generate LaTeX": {
-      "main": [
-        [
-          {
-            "node": "Base64 Encode TEX",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Base64 Encode TEX": {
-      "main": [
-        [
-          {
-            "node": "Compile LaTeX to PDF",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Compile LaTeX to PDF","type": "main", "index": 0 }]]
     },
     "Compile LaTeX to PDF": {
-      "main": [
-        [
-          {
-            "node": "PDF Compiled?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "PDF Compiled?",       "type": "main", "index": 0 }]]
     },
     "PDF Compiled?": {
       "main": [
-        [
-          {
-            "node": "PDF Success",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "PDF Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "PDF Success", "type": "main", "index": 0 }],
+        [{ "node": "PDF Error",   "type": "main", "index": 0 }]
       ]
     },
     "PDF Success": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
     },
     "PDF Error": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
     }
   },
-  "settings": {
-    "executionOrder": "v1"
-  },
+  "settings": { "executionOrder": "v1" },
   "staticData": null,
-  "meta": {
-    "instanceId": "latex-generator-workflow"
-  },
+  "meta": { "instanceId": "latex-generator-workflow" },
   "pinData": {},
   "id": 4,
   "active": true

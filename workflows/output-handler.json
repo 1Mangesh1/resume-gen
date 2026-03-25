@@ -12,25 +12,19 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        240,
-        300
-      ],
+      "position": [240, 300],
       "webhookId": "wh-output-handler-001"
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Validate and format final response with metadata\nconst input = items[0].json.body || items[0].json || {};\n\nconst pdfBase64 = input.pdf_base64 || null;\nconst texSource = input.tex_source || '';\nconst atsScore = typeof input.ats_score === 'number' ? input.ats_score : null;\nconst matchedKeywords = Array.isArray(input.matched_keywords) ? input.matched_keywords : [];\nconst compileError = input.compile_error || null;\n\n// Determine status: 'success' if PDF was generated, 'partial' if only .tex\nconst status = pdfBase64 ? 'success' : 'partial';\n\n// ISO timestamp\nconst generatedAt = new Date().toISOString();\n\nreturn [{\n  json: {\n    pdf_base64: pdfBase64,\n    tex_source: texSource,\n    ats_score: atsScore,\n    matched_keywords: matchedKeywords,\n    compile_error: compileError,\n    generated_at: generatedAt,\n    status: status\n  }\n}];\n"
+        "jsCode": "const raw   = items[0].json;\nconst input = raw.body || raw;\n\nconst pdfBase64       = input.pdf_base64       || null;\nconst texSource       = input.tex_source       || '';\nconst atsScore        = typeof input.ats_score === 'number' ? input.ats_score : null;\nconst matchedKeywords = Array.isArray(input.matched_keywords) ? input.matched_keywords : [];\nconst compileError    = input.compile_error    || null;\n\nreturn [{\n  json: {\n    pdf_base64:       pdfBase64,\n    tex_source:       texSource,\n    ats_score:        atsScore,\n    matched_keywords: matchedKeywords,\n    compile_error:    compileError,\n    generated_at:     new Date().toISOString(),\n    status:           pdfBase64 ? 'success' : 'partial'\n  }\n}];\n"
       },
       "id": "b2c3d4e5-0002-4000-8000-000000000002",
       "name": "Format Final Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        480,
-        300
-      ]
+      "position": [480, 300]
     },
     {
       "parameters": {
@@ -41,43 +35,16 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        720,
-        300
-      ]
+      "position": [720, 300]
     }
   ],
   "connections": {
-    "Webhook": {
-      "main": [
-        [
-          {
-            "node": "Format Final Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Final Response": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
+    "Webhook":              { "main": [[{ "node": "Format Final Response", "type": "main", "index": 0 }]] },
+    "Format Final Response": { "main": [[{ "node": "Respond to Webhook",   "type": "main", "index": 0 }]] }
   },
-  "settings": {
-    "executionOrder": "v1"
-  },
+  "settings": { "executionOrder": "v1" },
   "staticData": null,
-  "meta": {
-    "instanceId": "output-handler-workflow"
-  },
+  "meta": { "instanceId": "output-handler-workflow" },
   "pinData": {},
   "id": 5,
   "active": true
