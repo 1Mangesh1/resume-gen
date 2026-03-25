@@ -12,7 +12,10 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "webhookId": "wh-resume-parser-001"
     },
     {
@@ -24,7 +27,10 @@
       "name": "Build Gemini Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300]
+      "position": [
+        460,
+        300
+      ]
     },
     {
       "parameters": {
@@ -32,18 +38,28 @@
         "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { contents: [{ role: 'user', parts: [{ text: $json.prompt }] }], generationConfig: { response_mime_type: 'application/json', temperature: 0.1, maxOutputTokens: 4096 } } }}",
-        "options": { "timeout": 60000 }
+        "options": {
+          "timeout": 60000
+        }
       },
       "id": "33445566-7788-99aa-bbcc-ddeeff001122",
       "name": "Gemini API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [700, 300],
+      "position": [
+        700,
+        300
+      ],
       "continueOnFail": true
     },
     {
@@ -55,7 +71,10 @@
       "name": "Parse Gemini Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [940, 300]
+      "position": [
+        940,
+        300
+      ]
     },
     {
       "parameters": {
@@ -66,16 +85,61 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1180, 300]
+      "position": [
+        1180,
+        300
+      ]
     }
   ],
   "connections": {
-    "Webhook":             { "main": [[{ "node": "Build Gemini Prompt",   "type": "main", "index": 0 }]] },
-    "Build Gemini Prompt": { "main": [[{ "node": "Gemini API",            "type": "main", "index": 0 }]] },
-    "Gemini API":          { "main": [[{ "node": "Parse Gemini Response", "type": "main", "index": 0 }]] },
-    "Parse Gemini Response": { "main": [[{ "node": "Respond to Webhook",  "type": "main", "index": 0 }]] }
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Gemini Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Prompt": {
+      "main": [
+        [
+          {
+            "node": "Gemini API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini API": {
+      "main": [
+        [
+          {
+            "node": "Parse Gemini Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Gemini Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "staticData": null,
   "tags": [],
   "id": 2,

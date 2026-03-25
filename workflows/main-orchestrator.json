@@ -6,25 +6,37 @@
         "httpMethod": "POST",
         "path": "resume-gen",
         "responseMode": "responseNode",
-        "options": { "binaryPropertyName": "resume" }
+        "options": {
+          "binaryPropertyName": "resume"
+        }
       },
       "id": "c3d4e5f6-0003-4000-8000-000000000001",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "webhookId": "wh-main-orch-001"
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "cond-is-pdf",
               "leftValue": "={{ ($binary?.resume?.mimeType || $binary?.data?.mimeType || '').toLowerCase().includes('pdf') }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ],
           "combinator": "and"
@@ -35,7 +47,10 @@
       "name": "Is PDF?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [480, 300]
+      "position": [
+        480,
+        300
+      ]
     },
     {
       "parameters": {
@@ -46,7 +61,10 @@
       "name": "Extract from File",
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1,
-      "position": [720, 180]
+      "position": [
+        720,
+        180
+      ]
     },
     {
       "parameters": {
@@ -57,7 +75,10 @@
       "name": "Read TXT Binary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [720, 420]
+      "position": [
+        720,
+        420
+      ]
     },
     {
       "parameters": {
@@ -68,7 +89,10 @@
       "name": "Prepare Inputs",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [960, 300]
+      "position": [
+        960,
+        300
+      ]
     },
     {
       "parameters": {
@@ -77,13 +101,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ url: $json.jd_url, text: $json.jd_text }) }}",
-        "options": { "timeout": 45000 }
+        "options": {
+          "timeout": 45000
+        }
       },
       "id": "c3d4e5f6-0003-4000-8000-000000000006",
       "name": "Call JD Scraper",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1200, 180],
+      "position": [
+        1200,
+        180
+      ],
       "continueOnFail": true
     },
     {
@@ -93,13 +122,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ resume_text: $('Prepare Inputs').item.json.resume_text }) }}",
-        "options": { "timeout": 60000 }
+        "options": {
+          "timeout": 60000
+        }
       },
       "id": "c3d4e5f6-0003-4000-8000-000000000007",
       "name": "Call Resume Parser",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1200, 420],
+      "position": [
+        1200,
+        420
+      ],
       "continueOnFail": true
     },
     {
@@ -111,7 +145,10 @@
       "name": "Merge JD + Parser",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [1440, 300]
+      "position": [
+        1440,
+        300
+      ]
     },
     {
       "parameters": {
@@ -122,7 +159,10 @@
       "name": "Merge for AI",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1680, 300]
+      "position": [
+        1680,
+        300
+      ]
     },
     {
       "parameters": {
@@ -131,13 +171,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ resume_json: $json.resume_json, jd_raw: $json.jd_raw }) }}",
-        "options": { "timeout": 120000 }
+        "options": {
+          "timeout": 120000
+        }
       },
       "id": "c3d4e5f6-0003-4000-8000-000000000009",
       "name": "Call AI Tailoring Engine",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1920, 300],
+      "position": [
+        1920,
+        300
+      ],
       "continueOnFail": true
     },
     {
@@ -147,13 +192,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ tailored_resume: $json.tailored_resume }) }}",
-        "options": { "timeout": 150000 }
+        "options": {
+          "timeout": 150000
+        }
       },
       "id": "c3d4e5f6-0003-4000-8000-000000000010",
       "name": "Call LaTeX Generator",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2160, 300],
+      "position": [
+        2160,
+        300
+      ],
       "continueOnFail": true
     },
     {
@@ -163,13 +213,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({\n  pdf_base64:       $json.pdf_base64       ?? null,\n  tex_source:       $json.tex_source       ?? '',\n  ats_score:        $('Call AI Tailoring Engine').item.json.ats_score        ?? null,\n  matched_keywords: $('Call AI Tailoring Engine').item.json.matched_keywords ?? [],\n  compile_error:    $json.compile_error    ?? null\n}) }}",
-        "options": { "timeout": 10000 }
+        "options": {
+          "timeout": 10000
+        }
       },
       "id": "c3d4e5f6-0003-4000-8000-000000000011",
       "name": "Call Output Handler",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2400, 300],
+      "position": [
+        2400,
+        300
+      ],
       "continueOnFail": true
     },
     {
@@ -179,8 +234,14 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type",                "value": "application/json" },
-              { "name": "Access-Control-Allow-Origin", "value": "*"               }
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
             ]
           }
         }
@@ -189,56 +250,165 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2640, 300]
+      "position": [
+        2640,
+        300
+      ]
     }
   ],
   "connections": {
     "Webhook": {
-      "main": [[{ "node": "Is PDF?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Is PDF?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Is PDF?": {
       "main": [
-        [{ "node": "Extract from File", "type": "main", "index": 0 }],
-        [{ "node": "Read TXT Binary",   "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read TXT Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Extract from File": {
-      "main": [[{ "node": "Prepare Inputs", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prepare Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Read TXT Binary": {
-      "main": [[{ "node": "Prepare Inputs", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prepare Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare Inputs": {
-      "main": [[
-        { "node": "Call JD Scraper",    "type": "main", "index": 0 },
-        { "node": "Call Resume Parser", "type": "main", "index": 0 }
-      ]]
+      "main": [
+        [
+          {
+            "node": "Call JD Scraper",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Call Resume Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Call JD Scraper": {
-      "main": [[{ "node": "Merge JD + Parser", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Merge JD + Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Call Resume Parser": {
-      "main": [[{ "node": "Merge JD + Parser", "type": "main", "index": 1 }]]
+      "main": [
+        [
+          {
+            "node": "Merge JD + Parser",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
     },
     "Merge JD + Parser": {
-      "main": [[{ "node": "Merge for AI", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Merge for AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Merge for AI": {
-      "main": [[{ "node": "Call AI Tailoring Engine", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Call AI Tailoring Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Call AI Tailoring Engine": {
-      "main": [[{ "node": "Call LaTeX Generator", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Call LaTeX Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Call LaTeX Generator": {
-      "main": [[{ "node": "Call Output Handler", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Call Output Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Call Output Handler": {
-      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "staticData": null,
-  "meta": { "instanceId": "main-orchestrator-workflow" },
+  "meta": {
+    "instanceId": "main-orchestrator-workflow"
+  },
   "pinData": {},
   "id": 6,
   "active": true
